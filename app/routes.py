@@ -1,5 +1,9 @@
 from app import models, db
 from flask import current_app as app, jsonify, abort, request
+import re
+from datetime import datetime
+
+DATE_PATTERN = re.compile(r'\d{2}/\d{2}/\d{4}')
 
 
 @app.route('/users', methods=['GET'])
@@ -36,7 +40,7 @@ def get_order(order_id):
 
 @app.route('/offers', methods=['GET'])
 def get_offers():
-    offers = db.session.query(models.Order).all()
+    offers = db.session.query(models.Offer).all()
 
     return jsonify([offer.serialize() for offer in offers])
 
@@ -92,6 +96,9 @@ def delete_user(user_id):
 @app.route('/orders', methods=['POST'])
 def create_order():
     data = request.json
+    for field_name, field_value in data.items():
+        if isinstance(field_value, str) and re.search(DATE_PATTERN, field_value):
+            data[field_name] = datetime.strptime(field_value, '%m/%d/%Y').date()
 
     db.session.add(models.Order(**data))
     db.session.commit()
